@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pinyin Random Box</title>
+  <style>
+    body {
+      background: linear-gradient(125deg, #FFFDF5 75%, #FFF8E1 100%);
+      min-height: 100vh;
+      font-family: 'Sarabun', 'Microsoft YaHei', sans-serif;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      overflow-x: hidden;
+      position: relative;
+    }
+    .corner-svg {
+      position: fixed;
+      width: 120px;
+      height: 120px;
+      z-index: 0;
+      pointer-events: none;
+      opacity: .13;
+    }
+    .corner-tl { top: 0; left: 0; }
+    .corner-tr { top: 0; right: 0; transform: scaleX(-1);}
+    .corner-bl { bottom: 0; left: 0; transform: scaleY(-1);}
+    .corner-br { bottom: 0; right: 0; transform: scale(-1,-1);}
+    @media (max-width: 800px) {
+      .corner-svg { width: 60px; height: 60px;}
+    }
+    #intro {
+      width: 100vw; height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 32px;
+      position: fixed;
+      top: 0; left: 0;
+      z-index: 10;
+      background: none;
+    }
+    .big-title {
+      color: #C62427;
+      font-size: 3.1em;
+      font-weight: bold;
+      letter-spacing: 3px;
+      text-shadow: 0 2px 14px #FFD70099, 0 1.5px 0 #fff4, 0 0 10px #E0B87A99;
+      margin-bottom: 7px;
+      text-align: center;
+      font-family: 'Sarabun', 'Microsoft YaHei', sans-serif;
+    }
+    .subtitle {
+      color: #bfa13c;
+      font-size: 1.6em;
+      font-weight: bold;
+      margin-bottom: 12px;
+      text-align: center;
+      letter-spacing: 2px;
+      text-shadow: 0 2px 7px #FFD70033;
+    }
+    .red-btn {
+      background: linear-gradient(90deg, #C62427 70%, #FFD700 100%);
+      color: #fff;
+      border: 3px solid #FFD700;
+      border-radius: 28px;
+      font-size: 2.3em;
+      font-weight: bold;
+      padding: 24px 78px;
+      cursor: pointer;
+      box-shadow: 0 6px 30px #FFD70030, 0 2px 14px #C6242724;
+      letter-spacing: 2px;
+      margin-top: 35px;
+      transition: background 0.18s, box-shadow 0.18s, transform 0.11s;
+      display: block;
+      text-align: center;
+    }
+    .red-btn:active {
+      background: linear-gradient(90deg, #FFD700 50%, #C62427 100%);
+      color: #C62427;
+      border-color: #FFD700;
+      transform: scale(0.98);
+    }
+    #main-board-area {
+      margin: 30px auto 8px auto;
+      background: #FFFCF7CC;
+      border: 4.5px solid #FFD700;
+      border-radius: 18px;
+      box-shadow: 0 4px 18px #FFD70018, 0 1px 8px #C6242712;
+      max-width: 560px;
+      padding: 17px 23px 15px 23px;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      z-index: 2;
+    }
+    .pinyin-main-label {
+      font-size: 1.38em;
+      color: #C62427;
+      font-weight: bold;
+      letter-spacing: 2px;
+      text-align: center;
+      margin-bottom: 9px;
+      margin-top: 2px;
+      text-shadow: 0 2px 8px #FFD70066;
+    }
+    .board-label {
+      font-size: 1.09em;
+      color: #B87333;
+      font-weight: bold;
+      letter-spacing: 1.5px;
+      margin-bottom: 7px;
+      margin-top: 7px;
+      text-align: center;
+    }
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, 89px);
+      grid-template-rows: repeat(4, 89px);
+      gap: 10px;
+      margin: 0 auto 16px auto;
+      background: #FFFAE3;
+      border-radius: 13px;
+      padding: 7px;
+      border: 2.2px solid #FFD700;
+    }
+    .pinyin-slot {
+      width: 89px; height: 89px;
+      background: #FFF8E1;
+      border-radius: 16px;
+      box-shadow: 0 2px 10px #FFD70012;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2em;
+      font-weight: bold;
+      color: #C62427;
+      cursor: pointer;
+      border: 2.2px solid #FFD700;
+      transition: background .16s, color .15s, border .12s;
+      margin: 0;
+      position: relative;
+      z-index: 1;
+    }
+    .pinyin-slot.filled-red {
+      background: linear-gradient(120deg,#E22427 75%,#FFD700 100%);
+      color: #fff;
+      border: 3px solid #FFD700;
+      box-shadow: 0 3px 17px #E2242727;
+    }
+    .inventory-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 0;
+      justify-content: center;
+    }
+    .draw-card-btn {
+      font-size: 1.01em;
+      border-radius: 13px;
+      padding: 8px 17px;
+      background: linear-gradient(100deg,#FFD700 60%, #FFF8E1 100%);
+      color: #C62427;
+      font-weight: bold;
+      border: 2px solid #FFD700;
+      margin: 2px 4px 5px 4px;
+      box-shadow: 0 1px 8px #FFD70025;
+      cursor: pointer;
+      transition: background .13s, color .13s, border .13s, box-shadow .13s;
+      user-select: none;
+      min-width: 38px;
+    }
+    .draw-card-btn.selected, .draw-card-btn:active {
+      background: linear-gradient(120deg,#C62427 70%,#FFD700 100%);
+      color: #fff;
+      border: 2.5px solid #FFD700;
+      box-shadow: 0 2px 8px #C6242780;
+      transform: scale(1.08);
+    }
+    #round-area {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      background: #FFFDF5EE;
+      border-radius: 23px;
+      box-shadow: 0 8px 24px #FFD70033;
+      max-width: 650px;
+      width: 98vw;
+      padding: 30px 4vw 18px 4vw;
+      margin: 0 auto 19px auto;
+      border: 3px solid #FFD700BB;
+      z-index: 1;
+    }
+    #round-title {
+      font-size: 1.29em;
+      font-weight: bold;
+      color: #C62427;
+      margin-bottom: 19px;
+      margin-top: 4px;
+      text-align: center;
+      letter-spacing: 1.7px;
+      text-shadow: 0 2px 7px #FFD70044;
+    }
+    #moneyBox {
+      font-size: 1.1em;
+      font-weight: bold;
+      color: #C62427;
+      background: #FFF9E1;
+      border: 1.5px solid #FFD700;
+      border-radius: 9px;
+      padding: 9px 22px;
+      margin: 13px auto 2px auto;
+      box-shadow: 0 1.5px 9px #FFD70033;
+      text-align: center;
+      letter-spacing: 1.2px;
+      min-width: 130px;
+      max-width: 280px;
+    }
+    #round-confirm-btn {
+      margin: 28px auto 0 auto;
+      display: block;
+      font-size: 2.1em;
+      font-family: inherit;
+      font-weight: bold;
+      padding: 22px 82px 18px 82px;
+      background: linear-gradient(100deg, #E22427 82%, #FFD700 100%);
+      color: #fff;
+      border-radius: 18px;
+      border: 4px solid #FFD700;
+      box-shadow: 0 6px 18px #E2242733, 0 2px 10px #FFD70033;
+      letter-spacing: 2.5px;
+      cursor: pointer;
+      transition: 
+        background 0.16s, 
+        color 0.14s, 
+        transform 0.13s, 
+        box-shadow 0.13s;
+      outline: none;
+      position: relative;
+    }
+    #round-confirm-btn:active {
+      background: linear-gradient(90deg, #FFD700 60%, #E22427 100%);
+      color: #E22427;
+      border-color: #FFD700;
+      transform: scale(0.96);
+    }
+    #round-confirm-btn:disabled,
+    #round-confirm-btn[disabled] {
+      background: linear-gradient(90deg, #FFD7C9 60%, #FFD70055 100%);
+      color: #fff6;
+      border-color: #FFD70088;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+    #result-area {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin-top: 26px;
+      background: #FFFDF5EE;
+      border-radius: 23px;
+      padding: 34px 16px 34px 16px;
+      box-shadow: 0 8px 28px #FFD70025;
+      max-width: 600px;
+      width: 97vw;
+      border: 3px solid #FFD700BB;
+      z-index: 1;
+    }
+    #mainBoardResult {
+      margin: 10px auto 20px auto;
+      display: grid;
+      grid-template-columns: repeat(3, 72px);
+      grid-template-rows: repeat(4, 72px);
+      gap: 8px;
+      background: #fffbe8;
+      border-radius: 12px;
+      padding: 7px;
+      justify-content: center;
+    }
+    #finalMoney {
+      font-size: 1.3em;
+      color: #C62427;
+      margin-top: 18px;
+      font-weight: bold;
+      letter-spacing: 1.6px;
+      background: #FFF9E1;
+      border-radius: 8px;
+      border: 2px solid #FFD700;
+      padding: 10px 22px;
+      box-shadow: 0 2px 9px #FFD70033;
+    }
+    @media (max-width: 700px) {
+      .corner-svg {width: 38px; height: 38px;}
+      #main-board-area, #result-area, #round-area {padding:10px 1vw 10px 1vw; max-width:98vw;}
+      .board {grid-template-columns: repeat(3, 22vw); grid-template-rows: repeat(4, 22vw);}
+      .pinyin-slot, #mainBoardResult > div { width: 19vw; height: 19vw; min-width:40px; min-height:40px; font-size: 5vw;}
+      #mainBoardResult { grid-template-columns: repeat(3, 19vw); grid-template-rows: repeat(4, 19vw);}
+      .red-btn { font-size: 1.09em; padding: 12px 0; width: 92vw; }
+      #moneyBox, #finalMoney {font-size: 1em; padding:7px 7vw;}
+    }
+  </style>
+</head>
+<body>
+  <!-- SVG Cloud/Wave Corners -->
+  <svg class="corner-svg corner-tl" viewBox="0 0 100 100"><path fill="#FFD700" d="M0 90Q20 80 38 94T68 93T100 60Q90 0 0 0Z"/></svg>
+  <svg class="corner-svg corner-tr" viewBox="0 0 100 100"><path fill="#FFD700" d="M0 90Q20 80 38 94T68 93T100 60Q90 0 0 0Z"/></svg>
+  <svg class="corner-svg corner-bl" viewBox="0 0 100 100"><path fill="#FFD700" d="M0 90Q20 80 38 94T68 93T100 60Q90 0 0 0Z"/></svg>
+  <svg class="corner-svg corner-br" viewBox="0 0 100 100"><path fill="#FFD700" d="M0 90Q20 80 38 94T68 93T100 60Q90 0 0 0Z"/></svg>
+
+  <!-- หน้าแรก -->
+  <div id="intro">
+    <div class="big-title">PINYIN RANDOM BOX</div>
+    <div class="subtitle">by 高老师</div>
+    <button class="red-btn" id="startBtn">เริ่มเกม</button>
+  </div>
+<!-- HOWTO Overlay -->
+<div id="howto" style="display:none;">
+  <style>
+    #howto {
+      background: #B10D0D;
+      border: 6px solid #FFD700;
+      border-radius: 28px;
+      box-shadow: 0 6px 48px #B10D0D55;
+      max-width: 560px;
+      width: 96vw;
+      margin: 58px auto 0 auto;
+      position: relative;
+      z-index: 100;
+      padding: 0;
+      overflow: visible;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 80vh;
+    }
+    #howto .mainbox {
+      background: #FFF6E2;
+      border-radius: 20px;
+      padding: 48px 32px 36px 32px;
+      margin: 0;
+      position: relative;
+      border: 3px solid #FFD700;
+      box-shadow: 0 2px 24px #FFD70038;
+      width: 100%;
+      max-width: 510px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .china-corner {
+      position: absolute; width: 56px; height: 56px; z-index: 12; opacity: 0.75;
+      pointer-events: none;
+    }
+    .corner-tl-c { top: -8px; left: -8px;}
+    .corner-tr-c { top: -8px; right: -8px; transform: scaleX(-1);}
+    .corner-bl-c { bottom: -8px; left: -8px; transform: scaleY(-1);}
+    .corner-br-c { bottom: -8px; right: -8px; transform: scale(-1,-1);}
+    #timer-bar {
+      width: 92%; height: 18px;
+      background: #FFD70033;
+      border-radius: 8px;
+      margin: 20px auto 28px auto;
+      border: 2px solid #FFD70099;
+      overflow: hidden;
+      box-shadow: 0 0 6px #FFD70066 inset;
+      position: relative;
+    }
+    #timer-inner {
+      height: 100%;
+      background: linear-gradient(90deg,#FFD700 80%,#C62427 100%);
+      border-radius: 8px;
+      width: 100%;
+      transition: width 0.3s linear;
+      box-shadow: 0 0 9px #FFD700BB;
+    }
+    #timer-count {
+      position: absolute;
+      right: 14px; top: 50%;
+      transform: translateY(-50%);
+      font-size: 1.12em;
+      font-weight: bold;
+      color: #B10D0D;
+      text-shadow: 0 1px 6px #FFD70077;
+    }
+    #howto h2 {
+      color: #B10D0D;
+      text-align: center;
+      font-size: 2.15em;
+      letter-spacing: 2.5px;
+      margin-bottom: 10px;
+      font-weight: bold;
+      text-shadow: 0 2px 11px #FFD70033;
+    }
+    #howto ul, #howto li {
+      color: #B10D0D;
+      font-size: 1.13em;
+      font-family: 'Sarabun', 'Microsoft YaHei', sans-serif;
+      line-height: 1.62;
+      margin-left: 0;
+      padding-left: 12px;
+    }
+     #howto ul { margin-bottom: 18px;}
+    #howto table {
+      border-collapse: collapse;
+      width: 97%;
+      margin: 14px 0 14px 0;
+      background: #FFE7AC;
+      border: 2.5px solid #FFD700;
+      box-shadow: 0 0 4px #FFD70055;
+    }
+    #howto th, #howto td {
+      border: 1.5px solid #FFD700;
+      padding: 7px 0;
+      text-align: center;
+      color: #B10D0D;
+      font-weight: bold;
+      font-size: 1.08em;
+      background: #FFF6C1;
+    }
+    #howto th {
+      background: #FFD700;
+      color: #B10D0D;
+      font-size: 1.11em;
+    }
+    .skip-btn {
+      margin: 24px auto 0 auto;
+      display: block;
+      background: linear-gradient(90deg,#FFD700 70%,#FFED9A 100%);
+      color: #B10D0D;
+      font-family: inherit;
+      font-size: 2em;
+      font-weight: bold;
+      border-radius: 18px;
+      border: 3.5px solid #B10D0D;
+      box-shadow: 0 4px 14px #FFD70055, 0 1.5px 8px #FFD70099;
+      padding: 12px 66px 9px 66px;
+      letter-spacing: 1.5px;
+      cursor: pointer;
+      transition: background 0.18s, color 0.18s, box-shadow 0.13s, transform 0.12s;
+      outline: none;
+      text-shadow: 0 1px 3px #FFD70066;
+    }
+    .skip-btn:active {
+      background: linear-gradient(90deg,#FFD700 15%,#B10D0D 95%);
+      color: #FFD700;
+      border-color: #FFD700;
+      transform: scale(0.97);
+    }
+    @media (max-width: 650px) {
+      #howto .mainbox {padding: 20px 3vw 18px 3vw;}
+      .china-corner {width: 34px; height: 34px;}
+      .skip-btn {font-size: 1.1em; padding: 11px 0;}
+      #howto h2 {font-size: 1.15em;}
+      #howto th, #howto td {font-size: 1em;}
+    }
+  </style>
+  <!-- หัวมุมกรอบจีนทั้ง 4 มุม -->
+  <svg class="china-corner corner-tl-c" viewBox="0 0 80 80">
+    <path fill="#FFD700" d="M5 78V13Q5 5 13 5H78" stroke="#B10D0D" stroke-width="6" stroke-linecap="round"/>
+  </svg>
+  <svg class="china-corner corner-tr-c" viewBox="0 0 80 80">
+    <path fill="#FFD700" d="M5 78V13Q5 5 13 5H78" stroke="#B10D0D" stroke-width="6" stroke-linecap="round"/>
+  </svg>
+  <svg class="china-corner corner-bl-c" viewBox="0 0 80 80">
+    <path fill="#FFD700" d="M5 78V13Q5 5 13 5H78" stroke="#B10D0D" stroke-width="6" stroke-linecap="round"/>
+  </svg>
+  <svg class="china-corner corner-br-c" viewBox="0 0 80 80">
+    <path fill="#FFD700" d="M5 78V13Q5 5 13 5H78" stroke="#B10D0D" stroke-width="6" stroke-linecap="round"/>
+  </svg>
+  <div class="mainbox">
+    <h2>กติกาการเล่นเกม</h2>
+    <div id="timer-bar">
+      <div id="timer-inner"></div>
+      <div id="timer-count"></div>
+    </div>
+    <ul>
+      <li><b>ก่อนเริ่มเกม</b>
+        <ul>
+          <li>ผู้เล่นรับบอร์ดเกมกลุ่มละ 1 บอร์ด</li>
+          <li>กลุ่มผู้เล่นรับเงินตั้งต้นกลุ่มละ 200 元 (แบงค์ 50 元 2 ใบ, 20 元 3 ใบ, 10 元 4 ใบ)</li>
+        </ul>
+      </li>
+      <li><b>ขั้นตอนการเล่นเกม</b>
+        <ul>
+          <li>เล่นทั้งหมด 5 รอบ</li>
+          <li>ในแต่ละรอบ หยิบการ์ดจากกล่องสุ่ม:</li>
+          <table>
+            <tr><th>รอบ</th><th>หยิบ</th><th>เก็บ</th></tr>
+            <tr><td>1</td><td>5</td><td>3</td></tr>
+            <tr><td>2</td><td>5</td><td>3</td></tr>
+            <tr><td>3</td><td>4</td><td>2</td></tr>
+            <tr><td>4</td><td>4</td><td>2</td></tr>
+            <tr><td>5</td><td>3</td><td>1</td></tr>
+          </table>
+          <li>พิจารณาการ์ดที่ตรงกับบอร์ด เก็บไว้ และทิ้งที่เหลือ</li>
+          <li>เมื่อทุกคนคืนการ์ดแล้ว สามารถวางบนบอร์ด หรือเจรจาแลกได้</li>
+          <li>หลังเจรจา ครูเช็ค รางวัล:<br>
+            - ปิดบอร์ด 4 ช่อง (แนวตั้ง) ได้ +100元<br>
+            - ปิดบอร์ด 3 ช่อง (แนวนอน) ได้ +50元
+          </li>
+          <li>ครบ 5 รอบ สะสมมากที่สุดเป็นผู้ชนะ</li>
+        </ul>
+    </ul>
+    <button class="skip-btn" id="skipHowto">ข้าม</button>
+  </div>
+  <script>
+    // ----- TIMER BAR LOGIC (ครบถ้วนตามที่ขอ) -----
+    let timerSec = 60;
+    let timerIntv = null;
+    const timerBar = document.getElementById('timer-inner');
+    const timerCount = document.getElementById('timer-count');
+    function startHowtoTimer() {
+      // set initial
+      timerSec = 60;
+      timerBar.style.transition = "none";
+      timerBar.style.width = "100%";
+      setTimeout(() => {
+        timerBar.style.transition = "width 60s linear";
+        timerBar.style.width = "0%";
+      }, 50);
+      timerCount.textContent = "1:00";
+      clearInterval(timerIntv);
+      timerIntv = setInterval(()=>{
+        timerSec--;
+        if(timerSec<0) timerSec=0;
+        timerCount.textContent = Math.floor(timerSec/60) + ":" + ("0"+(timerSec%60)).slice(-2);
+        if(timerSec<=0) {
+          clearInterval(timerIntv);
+          document.getElementById('skipHowto').click();
+        }
+      }, 1000);
+    }
+    // กดข้าม = clear timer
+    document.getElementById('skipHowto').onclick = function() {
+      clearInterval(timerIntv);
+      document.getElementById('howto').style.display='none';
+      // เปิดหน้าเกม
+      document.getElementById('main-board-area').style.display='flex';
+      document.getElementById('round-area').style.display='flex';
+      document.getElementById('result-area').style.display='none';
+      round=0; pickedCards=[]; money=0;
+      boardArr = shuffle(pinyinSet).slice(0,12);
+      boardMarked = Array(12).fill(false);
+      renderBoard();
+      drawRound();
+      renderPickedCardsAll();
+    }
+    // แสดง HOWTO + timer ทุกครั้งที่กดเริ่มเกม
+    document.getElementById('startBtn').onclick = function() {
+      document.getElementById('intro').style.display='none';
+      document.getElementById('howto').style.display='flex';
+      document.getElementById('main-board-area').style.display='none';
+      document.getElementById('round-area').style.display='none';
+      document.getElementById('result-area').style.display='none';
+      startHowtoTimer();
+    };
+  </script>
+</div>
+  <!-- กรอบขาวบอร์ด -->
+  <div id="main-board-area" style="display:none;">
+    <div class="pinyin-main-label">Pinyin Random Box</div>
+    <div class="board" id="mainBoard"></div>
+    <div id="moneyBox"></div>
+    <div class="board-label">การ์ดที่คุณเลือกไว้</div>
+    <div class="inventory-row" id="pickedThisGame"></div>
+  </div>
+  <!-- หน้าเลือกการ์ดแต่ละรอบ -->
+  <div id="round-area" style="display:none;">
+    <div id="round-title"></div>
+    <div id="card-random-list"></div>
+    <button id="round-confirm-btn" disabled>ยืนยัน</button>
+  </div>
+  <!-- หน้าสรุปผล -->
+  <div id="result-area" style="display:none;">
+    <div class="pinyin-main-label" style="margin-bottom:10px;">Pinyin Random Box</div>
+    <div id="mainBoardResult"></div>
+    <div class="board-label" style="margin:18px 0 2px 0;">การ์ดที่คุณเลือกไว้ใน 5 รอบ</div>
+    <div class="inventory-row" id="inventoryResult"></div>
+    <div id="finalMoney"></div>
+    <button class="red-btn" onclick="showIntro()" style="margin-top:18px;">เล่นใหม่</button>
+  </div>
+  <script>
+    // --------- DATA ---------
+    const pinyinSet = [
+      {text:"b", sound:"b.mp3"},{text:"p", sound:"p.mp3"},{text:"m", sound:"m.mp3"},{text:"f", sound:"f.mp3"},
+      {text:"d", sound:"d.mp3"},{text:"t", sound:"t.mp3"},{text:"n", sound:"n.mp3"},{text:"l", sound:"l.mp3"},
+      {text:"g", sound:"g.mp3"},{text:"k", sound:"k.mp3"},{text:"h", sound:"h.mp3"},
+      {text:"j", sound:"j.mp3"},{text:"q", sound:"q.mp3"},{text:"x", sound:"x.mp3"},
+      {text:"zh", sound:"zh.mp3"},{text:"ch", sound:"ch.mp3"},{text:"sh", sound:"sh.mp3"},{text:"r", sound:"r.mp3"},
+      {text:"z", sound:"z.mp3"},{text:"c", sound:"c.mp3"},{text:"s", sound:"s.mp3"},{text:"y", sound:"y.mp3"},{text:"w", sound:"w.mp3"}
+    ];
+    const roundConfig = [
+      {draw:5, keep:3},
+      {draw:5, keep:3},
+      {draw:4, keep:2},
+      {draw:4, keep:2},
+      {draw:3, keep:1}
+    ];
+    let round=0, pickedCards=[], selectedThisRound=[], boardArr=[], boardMarked=[], money=0;
+
+    // --------- UTIL ---------
+    function shuffle(arr){let a=arr.slice();for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+    // --------- SHOW/HIDE ---------
+    function showIntro(){
+      document.getElementById('intro').style.display='flex';
+      document.getElementById('main-board-area').style.display='none';
+      document.getElementById('round-area').style.display='none';
+      document.getElementById('result-area').style.display='none';
+    }
+
+    // --------- BOARD ---------
+    function renderBoard(){
+      const area = document.getElementById('mainBoard');
+      area.innerHTML = '';
+      boardArr.forEach((p, idx)=>{
+        let slot = document.createElement('div');
+        slot.className = 'pinyin-slot';
+        slot.textContent = p.text;
+        if(boardMarked[idx]) slot.classList.add('filled-red');
+        slot.onclick = ()=>new Audio(p.sound).play();
+        area.appendChild(slot);
+      });
+      document.getElementById('moneyBox').innerHTML = `เงินสะสม: <b>${money}</b> หยวน`;
+    }
+    // --------- PICKED CARDS AREA (โชว์ใต้บอร์ดเท่านั้น) ---------
+    function renderPickedCardsAll(){
+      const area = document.getElementById('pickedThisGame');
+      area.innerHTML = '';
+      pickedCards.forEach(p=>{
+        let btn = document.createElement('button');
+        btn.className = 'draw-card-btn';
+        btn.textContent = p.text;
+        btn.onclick = ()=>new Audio(p.sound).play();
+        area.appendChild(btn);
+      });
+    }
+    // --------- DRAW ROUND ---------
+    function drawRound(){
+      document.getElementById('round-title').textContent =
+        `รอบที่ ${round+1} : สุ่ม ${roundConfig[round].draw} ตัว เลือกเก็บ ${roundConfig[round].keep} ตัว`;
+      const cardList = document.getElementById('card-random-list');
+      cardList.innerHTML = '';
+      selectedThisRound = [];
+      let available = pinyinSet.filter(x=>!pickedCards.some(p=>p.text===x.text));
+      let drawCards = shuffle(available).slice(0, roundConfig[round].draw);
+      drawCards.forEach(p=>{
+        let btn=document.createElement('button');
+        btn.className='draw-card-btn';
+        btn.textContent=p.text;
+        btn.onclick = function(e) {
+          if (btn.classList.contains('selected')) {
+            btn.classList.remove('selected');
+            selectedThisRound = selectedThisRound.filter(x=>x.text!==p.text);
+          } else {
+            if(selectedThisRound.length < roundConfig[round].keep){
+              btn.classList.add('selected');
+              selectedThisRound.push(p);
+            }
+          }
+          document.getElementById('round-confirm-btn').disabled = selectedThisRound.length !== roundConfig[round].keep;
+          new Audio(p.sound).play();
+        };
+        cardList.appendChild(btn);
+      });
+      document.getElementById('round-confirm-btn').disabled=true;
+    }
+    document.getElementById('round-confirm-btn').onclick=function(){
+      pickedCards = pickedCards.concat(selectedThisRound);
+      // ไฮไลท์ช่องบอร์ดที่เลือก (แดงขาว)
+      selectedThisRound.forEach(sel=>{
+        let idx = boardArr.findIndex(b=>b.text===sel.text);
+        if(idx>=0) boardMarked[idx] = true;
+      });
+      // คำนวณเงิน (แนวตั้ง/นอน) ทุกตา
+      let added = 0;
+      // แนวตั้ง
+      for(let c=0;c<3;c++){
+        let colFull=true;
+        for(let r=0;r<4;r++) if(!boardMarked[r*3+c]) colFull=false;
+        if(colFull) added+=100;
+      }
+      // แนวนอน
+      for(let r=0;r<4;r++){
+        let rowFull=true;
+        for(let c=0;c<3;c++) if(!boardMarked[r*3+c]) rowFull=false;
+        if(rowFull) added+=50;
+      }
+      money += added;
+      renderBoard();
+      renderPickedCardsAll();
+      round++;
+      if(round<roundConfig.length){
+        drawRound();
+      } else {
+        showResultArea();
+      }
+    };
+    // --------- RESULT ---------
+    let boardSlotsFilled = [];
+    function showResultArea(){
+      document.getElementById('round-area').style.display='none';
+      document.getElementById('result-area').style.display='flex';
+      document.getElementById('main-board-area').style.display='none';
+      boardSlotsFilled = boardMarked.slice();
+      renderInventoryResult();
+      renderMainBoardResult();
+      document.getElementById('finalMoney').innerHTML = `เงินสะสม: <b>${money}</b> หยวน`;
+    }
+    function renderInventoryResult(){
+      const area = document.getElementById('inventoryResult');
+      area.innerHTML = '';
+      pickedCards.forEach(p=>{
+        let btn=document.createElement('button');
+        btn.className='draw-card-btn';
+        btn.textContent=p.text;
+        btn.onclick=()=>new Audio(p.sound).play();
+        area.appendChild(btn);
+      });
+    }
+    function renderMainBoardResult(){
+      const area = document.getElementById('mainBoardResult');
+      area.innerHTML = '';
+      boardArr.forEach((p, idx)=>{
+        let slot=document.createElement('div');
+        slot.className='pinyin-slot';
+        slot.textContent=p.text;
+        if(boardSlotsFilled[idx]) slot.classList.add('filled-red');
+        slot.onclick=()=>new Audio(p.sound).play();
+        area.appendChild(slot);
+      });
+    }
+    showIntro();
+  </script>
+</body>
+</html>
+
